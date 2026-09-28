@@ -136,6 +136,9 @@ const T = { problem: { es: "Problema", en: "Problem" }, solution: { es: "Soluci�
   msgPh: { es: "Qué proceso o decisión, qué datos tienen hoy, qué les gustaría lograr", en: "Which process or decision, what data you have today, what you'd like to achieve" },
   err: { es: "Completá tu nombre y un email válido para que podamos responderte.", en: "Enter your name and a valid email so we can reply." },
   ok: { es: "Listo. Esta versión es una maqueta: todavía no envía mensajes.", en: "Done. This version is a mockup: it doesn't send messages yet." },
+  sending: { es: "Enviando…", en: "Sending…" },
+  sent: { es: "Recibimos tu consulta. Te respondemos en uno o dos días hábiles.", en: "We got your message. We'll reply within one or two business days." },
+  failed: { es: "No se pudo enviar. Probá de nuevo o escribinos por mail.", en: "Your message couldn't be sent. Try again or email us." },
   items: { es: "servicios", en: "services" } };
 
 function renderProblems() {
@@ -253,12 +256,28 @@ function setLang(l) {
 document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
 setLang(LANG);
 
-/* formulario (conectar a un backend o servicio de formularios al desplegar) */
-document.getElementById("contact-form").addEventListener("submit", function (e) {
+/* formulario: pegá en FORM_ENDPOINT la URL de tu formulario de Formspree (https://formspree.io/f/xxxxxxx).
+   Mientras esté vacío, el formulario valida pero no envía. */
+const FORM_ENDPOINT = "";
+document.getElementById("contact-form").addEventListener("submit", async function (e) {
   e.preventDefault();
   const note = document.getElementById("form-note");
+  const btn = this.querySelector("button[type=submit]");
   const name = this.elements.name.value.trim(), email = this.elements.email.value.trim();
-  note.textContent = (!name || !/^\S+@\S+\.\S+$/.test(email)) ? L(T.err) : L(T.ok);
+  if (!name || !/^\S+@\S+\.\S+$/.test(email)) { note.textContent = L(T.err); return; }
+  if (!FORM_ENDPOINT) { note.textContent = L(T.ok); return; }
+  btn.disabled = true;
+  note.textContent = L(T.sending);
+  try {
+    const res = await fetch(FORM_ENDPOINT, { method: "POST", headers: { Accept: "application/json" }, body: new FormData(this) });
+    if (!res.ok) throw new Error(res.status);
+    this.reset();
+    note.textContent = L(T.sent);
+  } catch (err) {
+    note.textContent = L(T.failed);
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 /* fondo del hero: grilla de celdas que se encienden en bandas diagonales */

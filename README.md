@@ -30,5 +30,6 @@ python -m http.server 8000
 
 - Nombre y logo definitivos (hoy dice "tu marca").
 - Email y ciudad reales en la sección de contacto.
-- Conectar el formulario de contacto (hoy solo valida en el navegador y no envía nada), por ejemplo con Formspree o un endpoint propio.
+- Conectar el formulario de contacto: crear un formulario gratis en [Formspree](https://formspree.io), copiar su URL (`https://formspree.io/f/...`) y pegarla en `FORM_ENDPOINT` al final de `assets/main.js`. Mientras esté vacío, el formulario valida pero no envía.
+- Completar los datos entre corchetes de `privacidad.html` (fecha, email, CUIT, domicilio).
 - Dominio y hosting (Vercel, Netlify o GitHub Pages sirven tal cual).
