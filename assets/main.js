@@ -94,7 +94,7 @@ const CASES = [
   { sector: { es: "Marketing", en: "Marketing" }, tech: "Inferencia causal",
     title: { es: "Cuánto vende de verdad cada campaña", en: "How much each campaign really sells" },
     problem: { es: "La atribución tradicional no distinguía entre ventas causadas por la campaña y ventas que iban a ocurrir igual.", en: "Traditional attribution couldn't tell sales caused by a campaign from sales that would have happened anyway." },
-    solution: { es: "Co-desarrollo de un framework de inferencia causal con controles sintéticos para medir el impacto incremental de cada inversión.", en: "Co-developed a causal inference framework with synthetic controls to measure the incremental impact of each investment." },
+    solution: { es: "Desarrollamos un framework de inferencia causal con controles sintéticos para medir el impacto incremental de cada inversión.", en: "Developed a causal inference framework with synthetic controls to measure the incremental impact of each investment." },
     result: { es: "El equipo de marketing decide presupuesto con impacto incremental medido, no con correlaciones.", en: "The marketing team sets budget using measured incremental impact, not correlations." } },
   { sector: { es: "Analítica", en: "Analytics" }, tech: "Agente LLM",
     title: { es: "Un agente que explica por qué cambió un KPI", en: "An agent that explains why a KPI moved" },
@@ -135,7 +135,6 @@ const T = { problem: { es: "Problema", en: "Problem" }, solution: { es: "Soluci�
   ctaB: { es: "Hablemos", en: "Let's talk" }, other: { es: "Otro / no sé todavía", en: "Other / not sure yet" },
   msgPh: { es: "Qué proceso o decisión, qué datos tienen hoy, qué les gustaría lograr", en: "Which process or decision, what data you have today, what you'd like to achieve" },
   err: { es: "Completá tu nombre y un email válido para que podamos responderte.", en: "Enter your name and a valid email so we can reply." },
-  ok: { es: "Listo. Esta versión es una maqueta: todavía no envía mensajes.", en: "Done. This version is a mockup: it doesn't send messages yet." },
   sending: { es: "Enviando…", en: "Sending…" },
   sent: { es: "Recibimos tu consulta. Te respondemos en uno o dos días hábiles.", en: "We got your message. We'll reply within one or two business days." },
   failed: { es: "No se pudo enviar. Probá de nuevo o escribinos por mail.", en: "Your message couldn't be sent. Try again or email us." },
@@ -206,7 +205,7 @@ function renderSheet(id) {
         <div class="item"><span class="n">${String(n).padStart(2, "0")}</span><h4>${esc(L(it.t))}</h4>
           <p>${esc(L(it.d))}</p><div class="chips">${L(it.c).map(c => `<span class="chip">${esc(c)}</span>`).join("")}</div></div>`; }).join("")}
       </div></div>`).join("")}
-    <div class="sheet-cta"><p><strong>${L(T.ctaT)}</strong>${L(T.ctaP)}</p><a class="btn btn-accent" href="#contacto" id="sheet-cta">${L(T.ctaB)}</a></div>`;
+    <div class="sheet-cta"><p><strong>${L(T.ctaT)}</strong> ${L(T.ctaP)}</p><a class="btn btn-accent" href="#contacto" id="sheet-cta">${L(T.ctaB)}</a></div>`;
   document.getElementById("sheet-close").onclick = closeSheet;
   document.getElementById("sheet-cta").onclick = () => {
     const idx = SERVICES.findIndex(x => x.id === id);
@@ -233,6 +232,7 @@ document.getElementById("services").addEventListener("click", e => {
 backdrop.addEventListener("click", () => closeSheet());
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && openId) closeSheet();
+  else if (e.key === "Escape") closeMenu();
   if (e.key === "Tab" && openId) {
     const f = sheet.querySelectorAll("button, a[href]");
     const first = f[0], last = f[f.length - 1];
@@ -248,30 +248,74 @@ function setLang(l) {
   document.body.classList.toggle("lang-es", l === "es");
   document.body.classList.toggle("lang-en", l === "en");
   document.documentElement.lang = l;
+  document.title = l === "es" ? "Jeyven · IA y Datos" : "Jeyven · AI & Data";
   document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === l)));
+  const focusInSheet = openId && sheet.contains(document.activeElement);
   renderProblems(); renderServices(); renderCases(); renderForm();
-  if (openId) renderSheet(openId);
+  if (openId) {
+    renderSheet(openId);
+    if (focusInSheet) document.getElementById("sheet-close").focus();
+  }
+  if (navToggle) navToggle.setAttribute("aria-label", menuLabel(navMenu.classList.contains("is-open")));
   const note = document.getElementById("form-note"); note.textContent = "";
 }
+
+/* menú en pantallas chicas: los links y "Hablemos" no caben en la barra */
+const navMenu = document.getElementById("nav-menu");
+const navToggle = document.querySelector(".nav-toggle");
+function menuLabel(open) {
+  if (open) return LANG === "es" ? "Cerrar menú" : "Close menu";
+  return LANG === "es" ? "Menú" : "Menu";
+}
+function closeMenu() {
+  navMenu.classList.remove("is-open");
+  navToggle.setAttribute("aria-expanded", "false");
+  navToggle.setAttribute("aria-label", menuLabel(false));
+}
+navToggle.addEventListener("click", () => {
+  const open = !navMenu.classList.contains("is-open");
+  navMenu.classList.toggle("is-open", open);
+  navToggle.setAttribute("aria-expanded", String(open));
+  navToggle.setAttribute("aria-label", menuLabel(open));
+});
+navMenu.addEventListener("click", e => { if (e.target.closest("a")) closeMenu(); });
+document.addEventListener("click", e => {
+  if (navMenu.classList.contains("is-open") && !e.target.closest(".nav")) closeMenu();
+});
 document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
 setLang(LANG);
 
-/* formulario: pegá en FORM_ENDPOINT la URL de tu formulario de Formspree (https://formspree.io/f/xxxxxxx).
-   Mientras esté vacío, el formulario valida pero no envía. */
+/* Destino de las consultas. No se muestra en la página. Formspree solo si pegás su URL en FORM_ENDPOINT. */
 const FORM_ENDPOINT = "";
+const CONTACT_EMAIL = "leomniga@gmail.com";
 document.getElementById("contact-form").addEventListener("submit", async function (e) {
   e.preventDefault();
   const note = document.getElementById("form-note");
   const btn = this.querySelector("button[type=submit]");
   const name = this.elements.name.value.trim(), email = this.elements.email.value.trim();
   if (!name || !/^\S+@\S+\.\S+$/.test(email)) { note.textContent = L(T.err); return; }
-  if (!FORM_ENDPOINT) { note.textContent = L(T.ok); return; }
+  const topic = this.elements.topic.options[this.elements.topic.selectedIndex].textContent.trim();
+  const company = this.elements.company.value.trim();
+  const message = this.elements.message.value.trim();
   btn.disabled = true;
   note.textContent = L(T.sending);
   try {
-    const res = await fetch(FORM_ENDPOINT, { method: "POST", headers: { Accept: "application/json" }, body: new FormData(this) });
-    if (!res.ok) throw new Error(res.status);
+    const res = FORM_ENDPOINT
+      ? await fetch(FORM_ENDPOINT, { method: "POST", headers: { Accept: "application/json" }, body: new FormData(this) })
+      : await fetch("https://formsubmit.co/ajax/" + encodeURIComponent(CONTACT_EMAIL), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            name, email, company, topic, message,
+            _replyto: email,
+            _subject: "Jeyven — " + (LANG === "es" ? "Consulta — " : "Inquiry — ") + topic,
+            _captcha: "false",
+          }),
+        });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.success === "false") throw new Error(data.message || res.status);
     this.reset();
+    renderForm();
     note.textContent = L(T.sent);
   } catch (err) {
     note.textContent = L(T.failed);
